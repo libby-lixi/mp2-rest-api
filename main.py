@@ -4,7 +4,9 @@ import logging
 from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from src import DatasetInfo, DatasetStorage, HealthResponse, setup_logging
+from src import DatasetInfo, DatasetStorage, HealthResponse, ProcessConfig, ProcessingReport, setup_logging
+from data_pipeline import create_cleaning_report, process_data, validate_dataframe
+
 
 setup_logging(verbose=True)
 logger = logging.getLogger(__name__)
@@ -75,3 +77,26 @@ def get_dataset(dataset_id: int, limit: int = Query(default=100, ge=1)):
         "data": records,
         "total_rows": len(df), # rows in the whole dataset, not just the ones shown
     }
+
+@app.post("/datasets/{dataset_id}/process", response_model=ProcessingReport)
+def process_dataset(dataset_id: int, config: ProcessConfig):
+    """Validate and process a stored dataset using MP1 functions."""
+    # TODO: retrieve, validate, process, report, update, and return.
+    # getting photocopy of the data
+    df = storage.get(dataset_id)
+
+    if df is None:
+        logger.warning(f"Dataset not found: {dataset_id}")
+        raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found.")
+
+    # turn the instruction form into a normal dict
+    config_dict = config.model_dump()
+    required_columns = config_dict["validation"]["required_columns"]
+    numeric_columns = config_dict["validation"]["numeric_columns"]
+
+    # making sure every numeric column actually exists
+    for column in numeric_columns:
+        if column not in df.columns:
+            logger.warning(f"Numeric column not found: {column}")
+            raise HTTPException(status_code=400, detail=f"Numeric column not found: {column}")
+        
