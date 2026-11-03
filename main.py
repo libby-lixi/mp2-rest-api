@@ -100,3 +100,38 @@ def process_dataset(dataset_id: int, config: ProcessConfig):
             logger.warning(f"Numeric column not found: {column}")
             raise HTTPException(status_code=400, detail=f"Numeric column not found: {column}")
         
+    try:
+        # validate the data
+        validated_df = validate_dataframe(df, required_columns, numeric_columns)
+
+        # count how many rows faild validation
+        validation_rows_removed = len(df) - len(validated_df)
+        logger.info(f"Validated dataset: id={dataset_id}, rows_removed={validation_rows_removed}")
+
+        # saving a before copy to compare later
+        before_processing = validated_df.copy()
+
+        # cleaning the data
+        processed_df = process_data(validated_df, config_dict)
+
+        # report card (before vs. after)
+        cleaning_report = create_cleaning_report(before_processing, processed_df)
+
+    except ValueError as error:
+        # if validation or cleaning fails send back 400
+        logger.warning(f"Processing failed: id={dataset_id}, error={error}")
+        raise HTTPException(status_code=400, detail=str(error))
+    
+    storage.update(dataset_id, processed_df)
+
+    logger.info(
+        f"Processed dataset: id={dataset_id}, validation_removed={validation_rows_removed}"
+        f", rows_cleaned={cleaning_report['rows_cleaned']}, rows_after={cleaning_report['rows_after']}"
+    )
+
+    return {
+        "id": dataset_id,
+        "validations_rows_removed": validation_rows_removed,
+        "cleaning_report": cleaning_report,
+    }
+
