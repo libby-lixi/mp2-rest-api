@@ -131,7 +131,7 @@ def process_dataset(dataset_id: int, config: ProcessConfig):
 
     return {
         "id": dataset_id,
-        "validations_rows_removed": validation_rows_removed,
+        "validation_rows_removed": validation_rows_removed,
         "cleaning_report": cleaning_report,
     }
 
