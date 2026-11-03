@@ -125,8 +125,8 @@ def process_dataset(dataset_id: int, config: ProcessConfig):
     storage.update(dataset_id, processed_df)
 
     logger.info(
-        f"Processed dataset: id={dataset_id}, validation_removed={validation_rows_removed}"
-        f", rows_cleaned={cleaning_report['rows_cleaned']}, rows_after={cleaning_report['rows_after']}"
+        f"Processed dataset: id={dataset_id}, validation_removed={validation_rows_removed}, "
+        f"rows_before={cleaning_report['rows_before']}, rows_after={cleaning_report['rows_after']}"
     )
 
     return {
