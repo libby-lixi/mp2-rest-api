@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from src import DatasetInfo, DatasetStorage, HealthResponse, ProcessConfig, ProcessingReport, setup_logging
+from src import DatasetInfo, DatasetStorage, HealthResponse, ProcessConfig, ProcessingReport, log_requests ,setup_logging
 from data_pipeline import create_cleaning_report, process_data, validate_dataframe
 
 
@@ -12,6 +12,7 @@ setup_logging(verbose=True)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Data Processing API", version="1.0.0")
+app.middleware("http")(log_requests) # puts the "security guard" at the front door
 storage = DatasetStorage()
 
 @app.get("/health", response_model=HealthResponse)
@@ -135,3 +136,4 @@ def process_dataset(dataset_id: int, config: ProcessConfig):
         "cleaning_report": cleaning_report,
     }
 
+ 
