@@ -1,27 +1,49 @@
 def test_upload_csv(client, sample_csv_bytes):
-    # TODO: Upload the sample CSV to POST /upload.
-    # Assert status 200, six rows, two columns,
-    # and a positive integer dataset ID.
-    pass
+    response = client.post(
+        "/upload",
+        files={"file": ("sample_data.csv", sample_csv_bytes, "text/csv")}
+    )
+
+    # check the answer 
+    assert response.status_code == 200
+    body = response.json()
+    assert body["rows"] == 6
+    assert body["columns"] == 2
+    assert isinstance(body["id"], int)  # the ID is a whole num
+    assert body["id"] > 0               # its positive
 
 
-def test_process_and_retrieve(
-    client, uploaded_dataset_id, processing_body
-):
-    # TODO 1: Send a POST request to
-    # /datasets/{uploaded_dataset_id}/process
-    # using json=processing_body.
-    # Assert status 200, one validation removal,
-    # and a cleaning report showing 5 → 3 rows.
+def test_process_and_retrieve(client, uploaded_dataset_id, processing_body):
+    response = client.post(
+        f"/datasets/{uploaded_dataset_id}/process", json=processing_body)
+    
+    assert response.status_code == 200
+    report = response.json()
+    assert report["validation_rows_removed"] == 1
+    assert report["cleaning_report"]["rows_before"] == 5
+    assert report["cleaning_report"]["rows_after"] == 3
 
-    # TODO 2: GET /datasets/{uploaded_dataset_id}.
-    # Assert status 200 and total_rows == 3.
-    # Check that the returned records contain student IDs
-    # 1, 2, and 5 with scores 80, 90, and 85.
-    pass
+    # get the cleaned dataset back
+    response = client.get(f"/datasets/{uploaded_dataset_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_rows"] == 3
+
+    # make lists of the student IDs and scores that came back
+    student_ids = []
+    scores = []
+    for row in body["data"]:
+        student_ids.append(row["student_id"])
+        scores.append(row["score"])
+
+    assert student_ids == [1, 2, 5]
+    assert scores == [80, 90, 85]
+
 
 
 def test_retrieve_missing_dataset(client):
     # TODO: Retrieve a dataset ID that does not exist.
     # Assert status 404.
-    pass
+    response = client.get("/datasets/9999")  
+    assert response.status_code == 404
